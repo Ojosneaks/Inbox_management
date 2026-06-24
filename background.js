@@ -1,76 +1,67 @@
-// Your Gmail OAuth Client ID
-const CLIENT_ID = 'iapnopmnpfflldjoheiphodijdpjodli.apps.googleusercontent.com';
+// ============================================================
+// Inbox Focus — background.js (service worker)
+// Handles authentication and Gmail API calls.
+// ============================================================
 
-// Scopes tell Google what your extension is allowed to access
+const CLIENT_ID = 'YOUR_CLIENT_ID_HERE.apps.googleusercontent.com';
 const SCOPES = 'https://www.googleapis.com/auth/gmail.readonly';
 
-// This function handles logging the user in
+// ---- Login: get a token from Google ----
 function authenticate() {
   return new Promise((resolve, reject) => {
-    chrome.identity.getAuthToken({ 
+    chrome.identity.getAuthToken({
       interactive: true,
       scopes: [SCOPES]
-    }, function(token) {
+    }, function (token) {
       if (chrome.runtime.lastError) {
         reject(chrome.runtime.lastError);
         return;
       }
-      // Save the token to storage so we can use it later
       chrome.storage.local.set({ authToken: token });
       resolve(token);
     });
   });
 }
 
-// This function fetches emails from Gmail API
-// Step 1: Get list of message IDs
+// ---- Step 1: get a list of message IDs ----
 function fetchEmails(token) {
   return fetch(
     'https://www.googleapis.com/gmail/v1/users/me/messages?maxResults=20&q=is:unread', {
-    headers: {
-      'Authorization': 'Bearer ' + token
-    }
+    headers: { 'Authorization': 'Bearer ' + token }
   })
-  .then(response => response.json())
-  .then(data => {
-    if (!data.messages) return [];
-    // Step 2: Fetch details for each message
-    return fetchEmailDetails(token, data.messages);
-  });
+    .then(response => response.json())
+    .then(data => {
+      if (!data.messages) return [];
+      return fetchEmailDetails(token, data.messages);
+    });
 }
 
-// Step 2: Get actual content for each email
+// ---- Step 2: get details for each message ----
 function fetchEmailDetails(token, messages) {
   const requests = messages.map(message => {
     return fetch(
       `https://www.googleapis.com/gmail/v1/users/me/messages/${message.id}?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date`, {
-      headers: {
-        'Authorization': 'Bearer ' + token
-      }
+      headers: { 'Authorization': 'Bearer ' + token }
     })
-    .then(response => response.json())
-    .then(email => {
-      // Pull out the headers we need
-      const headers = email.payload.headers;
-      const from = headers.find(h => h.name === 'From')?.value || 'Unknown';
-      const subject = headers.find(h => h.name === 'Subject')?.value || 'No subject';
-      const date = headers.find(h => h.name === 'Date')?.value || '';
-
-      return {
-        id: email.id,
-        from: from,
-        subject: subject,
-        date: formatDate(date),
-        unread: email.labelIds?.includes('UNREAD')
-      };
-    });
+      .then(response => response.json())
+      .then(email => {
+        const headers = email.payload.headers;
+        const from = headers.find(h => h.name === 'From')?.value || 'Unknown';
+        const subject = headers.find(h => h.name === 'Subject')?.value || 'No subject';
+        const date = headers.find(h => h.name === 'Date')?.value || '';
+        return {
+          id: email.id,
+          from: from,
+          subject: subject,
+          date: formatDate(date),
+          unread: email.labelIds?.includes('UNREAD')
+        };
+      });
   });
-
-  // Run all requests at the same time instead of one by one
   return Promise.all(requests);
 }
 
-// Make dates readable
+// ---- Make dates human readable ----
 function formatDate(dateString) {
   if (!dateString) return '';
   const date = new Date(dateString);
@@ -80,33 +71,34 @@ function formatDate(dateString) {
   const days = Math.floor(hours / 24);
 
   if (hours < 1) return 'Just now';
-  if (hours < 24) return date.toLocaleTimeString([], { 
-    hour: '2-digit', minute: '2-digit' 
-  });
+  if (hours < 24) return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   if (days === 1) return 'Yesterday';
   if (days < 7) return date.toLocaleDateString([], { weekday: 'short' });
   return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
 }
 
-// Listen for messages from content.js
+// ---- Listen for messages from content.js ----
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'GET_EMAILS') {
-    // First check if we already have a token saved
-    chrome.storage.local.get(['authToken'], function(result) {
+    chrome.storage.local.get(['authToken'], function (result) {
       if (result.authToken) {
-        // We have a token, fetch emails
         fetchEmails(result.authToken)
-          .then(data => sendResponse({ success: true, data: data }))
-          .catch(err => sendResponse({ success: false, error: err }));
+          .then(data => sendResponse({ success: true, data: { messages: data } }))
+          .catch(err => {
+            // Token may be stale — clear it and try a fresh login
+            chrome.storage.local.remove('authToken');
+            authenticate()
+              .then(token => fetchEmails(token))
+              .then(data => sendResponse({ success: true, data: { messages: data } }))
+              .catch(e => sendResponse({ success: false, error: String(e) }));
+          });
       } else {
-        // No token, authenticate first
         authenticate()
           .then(token => fetchEmails(token))
-          .then(data => sendResponse({ success: true, data: data }))
-          .catch(err => sendResponse({ success: false, error: err }));
+          .then(data => sendResponse({ success: true, data: { messages: data } }))
+          .catch(err => sendResponse({ success: false, error: String(err) }));
       }
     });
-    // This tells Chrome to wait for our async response
-    return true;
+    return true; // keep the channel open for the async response
   }
 });

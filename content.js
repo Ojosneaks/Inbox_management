@@ -1,4 +1,9 @@
-// Wait for Gmail to fully load before we do anything
+// ============================================================
+// Inbox Focus — content.js
+// Runs inside Gmail. Injects the tab bar and renders emails.
+// ============================================================
+
+// ---- Wait for Gmail to finish loading ----
 function waitForGmail() {
   const observer = new MutationObserver((mutations, obs) => {
     const inboxPane = document.querySelector('div[role="main"]');
@@ -7,38 +12,33 @@ function waitForGmail() {
       initInboxFocus();
     }
   });
-
-  observer.observe(document.body, {
-    childList: true,
-    subtree: true
-  });
+  observer.observe(document.body, { childList: true, subtree: true });
 }
 
-// This is the main function that kicks everything off
+// ---- Kick everything off ----
 function initInboxFocus() {
   console.log('Inbox Focus is running');
-  requestEmails();
   injectTabBar();
+  requestEmails();
 }
 
-// Ask background.js to fetch emails
+// ---- Ask background.js for emails ----
 function requestEmails() {
-  chrome.runtime.sendMessage({ type: 'GET_EMAILS' }, function(response) {
-    if (response.success) {
+  chrome.runtime.sendMessage({ type: 'GET_EMAILS' }, function (response) {
+    if (response && response.success) {
       console.log('Got emails:', response.data);
       categorizeEmails(response.data);
     } else {
-      console.log('Failed to get emails:', response.error);
+      console.log('Failed to get emails:', response && response.error);
     }
   });
 }
 
-// Sort emails into your three categories
+// ---- Sort emails into categories ----
 function categorizeEmails(data) {
-  // Get your saved high priority senders and categories
-  chrome.storage.local.get(['highPriority', 'categories'], function(result) {
+  chrome.storage.local.get(['highPriority'], function (result) {
     const highPriority = result.highPriority || [];
-    
+
     const categories = {
       highPriority: [],
       work: [],
@@ -47,48 +47,33 @@ function categorizeEmails(data) {
       low: []
     };
 
-    // Keywords for each category
     const keywords = {
-      work: ['job', 'interview', 'application', 'hiring', 'recruit', 
+      work: ['job', 'interview', 'application', 'hiring', 'recruit',
              'offer', 'position', 'career', 'linkedin'],
       financial: ['bank', 'payment', 'invoice', 'transaction', 'receipt',
                   'bloomberg', 'market', 'invest', 'finance', 'account'],
-      local: ['richmond', 'local', 'community', 'neighborhood', 
+      local: ['richmond', 'local', 'community', 'neighborhood',
               'nextdoor', 'rva', 'city', 'county']
     };
 
-    // Loop through every email and sort it
     const messages = data.messages || [];
     messages.forEach(email => {
       const sender = (email.from || '').toLowerCase();
       const subject = (email.subject || '').toLowerCase();
       const combined = sender + ' ' + subject;
 
-      // Check if sender is tagged as high priority first
       if (highPriority.some(hp => combined.includes(hp.toLowerCase()))) {
-        categories.highPriority.push(email);
-        return;
+        categories.highPriority.push(email); return;
       }
-
-      // Check work keywords
-      if (keywords.work.some(word => combined.includes(word))) {
-        categories.work.push(email);
-        return;
+      if (keywords.work.some(w => combined.includes(w))) {
+        categories.work.push(email); return;
       }
-
-      // Check financial keywords
-      if (keywords.financial.some(word => combined.includes(word))) {
-        categories.financial.push(email);
-        return;
+      if (keywords.financial.some(w => combined.includes(w))) {
+        categories.financial.push(email); return;
       }
-
-      // Check local keywords
-      if (keywords.local.some(word => combined.includes(word))) {
-        categories.local.push(email);
-        return;
+      if (keywords.local.some(w => combined.includes(w))) {
+        categories.local.push(email); return;
       }
-
-      // Everything else goes to low priority
       categories.low.push(email);
     });
 
@@ -97,42 +82,39 @@ function categorizeEmails(data) {
   });
 }
 
-// Inject your custom tab bar into Gmail
+// ---- Inject the custom tab bar ----
 function injectTabBar() {
-  // Check if we already injected to avoid duplicates
   if (document.getElementById('inbox-focus-tabs')) return;
 
-  // Find Gmail's tab area
   const gmailTabs = document.querySelector('div[gh="tl"]');
   if (!gmailTabs) return;
 
-  // Create your tab bar
   const tabBar = document.createElement('div');
   tabBar.id = 'inbox-focus-tabs';
   tabBar.innerHTML = `
     <div class="if-tab-bar">
       <div class="if-tab active" data-category="highPriority">
-        <span class="if-tab-icon">⚡</span>
+        <span class="if-tab-icon">&#9889;</span>
         <span class="if-tab-label">Priority</span>
         <span class="if-tab-badge" id="badge-highPriority">0</span>
       </div>
       <div class="if-tab" data-category="work">
-        <span class="if-tab-icon">💼</span>
+        <span class="if-tab-icon">&#128188;</span>
         <span class="if-tab-label">Work</span>
         <span class="if-tab-badge" id="badge-work">0</span>
       </div>
       <div class="if-tab" data-category="financial">
-        <span class="if-tab-icon">💰</span>
+        <span class="if-tab-icon">&#128176;</span>
         <span class="if-tab-label">Financial</span>
         <span class="if-tab-badge" id="badge-financial">0</span>
       </div>
       <div class="if-tab" data-category="local">
-        <span class="if-tab-icon">📍</span>
+        <span class="if-tab-icon">&#128205;</span>
         <span class="if-tab-label">Local</span>
         <span class="if-tab-badge" id="badge-local">0</span>
       </div>
       <div class="if-tab" data-category="low">
-        <span class="if-tab-icon">🏷</span>
+        <span class="if-tab-icon">&#127991;</span>
         <span class="if-tab-label">Low priority</span>
         <span class="if-tab-badge" id="badge-low">0</span>
       </div>
@@ -140,43 +122,31 @@ function injectTabBar() {
     </div>
   `;
 
-  // Insert your tab bar above Gmail's existing tabs
   gmailTabs.parentNode.insertBefore(tabBar, gmailTabs);
 
-  // Add click handlers to each tab
   tabBar.querySelectorAll('.if-tab').forEach(tab => {
-    tab.addEventListener('click', function() {
-      tabBar.querySelectorAll('.if-tab').forEach(t => 
-        t.classList.remove('active'));
+    tab.addEventListener('click', function () {
+      tabBar.querySelectorAll('.if-tab').forEach(t => t.classList.remove('active'));
       this.classList.add('active');
-      const category = this.getAttribute('data-category');
-      showCategory(category);
+      showCategory(this.getAttribute('data-category'));
     });
   });
 }
 
-// Update badge counts and render emails
+// ---- Update badges + show default category ----
 function renderTabs(categories) {
-  // Update badge numbers on each tab
   Object.keys(categories).forEach(category => {
     const badge = document.getElementById('badge-' + category);
-    if (badge) {
-      badge.textContent = categories[category].length;
-    }
+    if (badge) badge.textContent = categories[category].length;
   });
-
-  // Show high priority emails first by default
-  showCategory('highPriority', categories);
-
-  // Save categories to storage for later use
   chrome.storage.local.set({ cachedCategories: categories });
+  showCategory('highPriority', categories);
 }
 
-// Display emails for selected category
+// ---- Switch which category is visible ----
 function showCategory(category, categories) {
-  // If categories not passed in grab from storage
   if (!categories) {
-    chrome.storage.local.get(['cachedCategories'], function(result) {
+    chrome.storage.local.get(['cachedCategories'], function (result) {
       if (result.cachedCategories) {
         displayEmails(result.cachedCategories[category] || []);
       }
@@ -186,9 +156,8 @@ function showCategory(category, categories) {
   displayEmails(categories[category] || []);
 }
 
-// Render the actual email list
+// ---- Render email rows ----
 function displayEmails(emails) {
-  // Find or create the email display area
   let emailPane = document.getElementById('inbox-focus-emails');
   if (!emailPane) {
     emailPane = document.createElement('div');
@@ -197,58 +166,65 @@ function displayEmails(emails) {
     if (mainPane) mainPane.appendChild(emailPane);
   }
 
-  // Build email rows
-  if (emails.length === 0) {
-    emailPane.innerHTML = `
-      <div class="if-empty">
-        No emails in this category
-      </div>`;
+  if (!emails || emails.length === 0) {
+    emailPane.innerHTML = `<div class="if-empty">No emails in this category</div>`;
     return;
   }
 
   emailPane.innerHTML = emails.map(email => `
     <div class="if-email-row">
-      <div class="if-unread-dot"></div>
-      <div class="if-avatar">${(email.from || 'U')[0].toUpperCase()}</div>
+      ${email.unread ? '<div class="if-unread-dot"></div>' : '<div style="width:8px;flex-shrink:0;"></div>'}
+      <div class="if-avatar">${escapeHtml((email.from || 'U')[0].toUpperCase())}</div>
       <div class="if-email-content">
         <div class="if-email-top">
-          <span class="if-sender">${email.from || 'Unknown'}</span>
-          <span class="if-time">${email.date || ''}</span>
+          <span class="if-sender">${escapeHtml(cleanSender(email.from))}</span>
+          <span class="if-time">${escapeHtml(email.date || '')}</span>
         </div>
-        <div class="if-subject">${email.subject || 'No subject'}</div>
+        <div class="if-subject">${escapeHtml(email.subject || 'No subject')}</div>
       </div>
-      <button class="if-priority-btn" data-sender="${email.from}">
-        ⚡
-      </button>
+      <button class="if-priority-btn" data-sender="${escapeHtml(email.from || '')}" title="Tag as high priority">&#9889;</button>
     </div>
   `).join('');
 
-  // Add click handlers for the priority tag button
   emailPane.querySelectorAll('.if-priority-btn').forEach(btn => {
-    btn.addEventListener('click', function(e) {
+    btn.addEventListener('click', function (e) {
       e.stopPropagation();
-      const sender = this.getAttribute('data-sender');
-      tagHighPriority(sender);
+      tagHighPriority(this.getAttribute('data-sender'));
       this.style.opacity = '1';
       this.title = 'Tagged as high priority';
     });
   });
 }
 
-// Tag a sender as high priority
+// ---- Tag a sender as high priority ----
 function tagHighPriority(senderEmail) {
-  chrome.storage.local.get(['highPriority'], function(result) {
+  chrome.storage.local.get(['highPriority'], function (result) {
     const current = result.highPriority || [];
     if (!current.includes(senderEmail)) {
       current.push(senderEmail);
-      chrome.storage.local.set({ highPriority: current }, function() {
+      chrome.storage.local.set({ highPriority: current }, function () {
         console.log('Tagged as high priority:', senderEmail);
-        // Refresh emails to show the change
         requestEmails();
       });
     }
   });
 }
 
-// Kick everything off
+// ---- Helpers ----
+function cleanSender(from) {
+  if (!from) return 'Unknown';
+  // "Sarah <sarah@x.com>" -> "Sarah"
+  const match = from.match(/^(.*?)</);
+  return (match ? match[1].trim() : from).replace(/"/g, '');
+}
+
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// ---- Go ----
 waitForGmail();

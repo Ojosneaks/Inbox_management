@@ -1,0 +1,181 @@
+/* ============================================================
+   Inbox Focus — styles.css
+   ============================================================ */
+
+/* Hide Gmail's default tabs */
+div[gh="tl"] { display: none !important; }
+
+/* Tab bar container */
+#inbox-focus-tabs {
+  width: 100%;
+  border-bottom: 1px solid #e0e0e0;
+  background: #ffffff;
+  position: relative;
+}
+
+.if-tab-bar {
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  gap: 4px;
+  position: relative;
+}
+
+.if-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -1px;
+  white-space: nowrap;
+  border-radius: 4px 4px 0 0;
+  transition: background 0.15s;
+}
+.if-tab:hover { background: #f5f5f5; }
+.if-tab.active { border-bottom-color: #534AB7; }
+
+.if-tab-icon { font-size: 14px; }
+
+.if-tab-label {
+  font-size: 13px;
+  color: #666666;
+  font-family: "Google Sans", Roboto, sans-serif;
+}
+.if-tab.active .if-tab-label { color: #534AB7; font-weight: 500; }
+
+.if-tab-badge {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  background: #f1f1f1;
+  color: #666666;
+  font-weight: 500;
+  min-width: 18px;
+  text-align: center;
+}
+.if-tab.active .if-tab-badge { background: #EEEDFE; color: #534AB7; }
+
+.if-focus-badge {
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #534AB7;
+  color: white;
+  font-weight: 500;
+  margin-left: auto;
+  letter-spacing: 0.3px;
+}
+
+/* Email list */
+#inbox-focus-emails { padding: 0; background: #ffffff; }
+
+.if-email-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.if-email-row:hover { background: #f5f5f5; }
+
+.if-unread-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #534AB7;
+  flex-shrink: 0;
+}
+
+.if-avatar {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: #EEEDFE;
+  color: #534AB7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 500;
+  flex-shrink: 0;
+  font-family: "Google Sans", Roboto, sans-serif;
+}
+
+.if-email-content { flex: 1; min-width: 0; }
+
+.if-email-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.if-sender {
+  font-size: 13px;
+  font-weight: 500;
+  color: #202020;
+  font-family: "Google Sans", Roboto, sans-serif;
+}
+
+.if-time { font-size: 11px; color: #999999; flex-shrink: 0; }
+
+.if-subject {
+  font-size: 12px;
+  color: #444444;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: "Google Sans", Roboto, sans-serif;
+}
+
+.if-priority-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  opacity: 0.3;
+  padding: 4px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  transition: opacity 0.15s;
+}
+.if-priority-btn:hover { opacity: 1; background: #f0f0f0; }
+
+.if-empty {
+  padding: 32px 16px;
+  text-align: center;
+  color: #999999;
+  font-size: 13px;
+  font-family: "Google Sans", Roboto, sans-serif;
+}
+
+/* Boss battle banner (built later) */
+.if-boss-battle {
+  width: 100%;
+  background: #A32D2D;
+  color: white;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: "Google Sans", Roboto, sans-serif;
+}
+.if-boss-battle-text { font-size: 13px; font-weight: 500; }
+.if-boss-battle-actions { display: flex; gap: 8px; }
+.if-boss-btn {
+  padding: 6px 12px;
+  border-radius: 4px;
+  border: none;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.if-boss-btn-primary { background: white; color: #A32D2D; }
+.if-boss-btn-snooze {
+  background: transparent;
+  color: white;
+  border: 1px solid rgba(255,255,255,0.5);
+}

@@ -12,7 +12,6 @@
     "https://mail.google.com/*",
     "https://www.googleapis.com/*"
   ],
-  "key": "YOUR_EXTENSION_PUBLIC_KEY",
   "oauth2": {
     "client_id": "iapnopmnpfflldjoheiphodijdpjodli.apps.googleusercontent.com",
     "scopes": [
