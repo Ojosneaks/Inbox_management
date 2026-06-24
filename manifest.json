@@ -1,0 +1,35 @@
+{
+  "manifest_version": 3,
+  "name": "Inbox Focus",
+  "version": "1.0",
+  "description": "Budget your attention. See what matters the moment you open Gmail.",
+  "permissions": [
+    "identity",
+    "storage",
+    "tabs"
+  ],
+  "host_permissions": [
+    "https://mail.google.com/*",
+    "https://www.googleapis.com/*"
+  ],
+  "key": "YOUR_EXTENSION_PUBLIC_KEY",
+  "oauth2": {
+    "client_id": "iapnopmnpfflldjoheiphodijdpjodli.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/gmail.readonly"
+    ]
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://mail.google.com/*"],
+      "js": ["content.js"],
+      "css": ["styles.css"]
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  }
+}
